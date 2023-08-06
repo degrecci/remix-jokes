@@ -2,6 +2,7 @@ import type { ActionArgs } from "@remix-run/node";
 import { badRequest } from "~/utils/request.server";
 import { db } from "~/utils/db.server";
 import { redirect } from "@remix-run/node";
+import { requireUserId } from "~/utils/session.server";
 import { useActionData } from "@remix-run/react";
 
 function validateJokeContent(content: string) {
@@ -17,6 +18,7 @@ function validateJokeName(name: string) {
 }
 
 export const action = async ({ request }: ActionArgs) => {
+  const userId = await requireUserId(request);
   const form = await request.formData();
   const content = form.get("content");
   const name = form.get("name");
@@ -41,11 +43,15 @@ export const action = async ({ request }: ActionArgs) => {
     });
   }
 
-  const joke = await db.joke.create({ data: fields });
+  const joke = await db.joke.create({
+    data: { ...fields, jokesterId: userId },
+  });
   return redirect(`/jokes/${joke.id}`);
 };
+
 export default function NewJokeRoute() {
   const actionData = useActionData<typeof action>();
+
   return (
     <div>
       <p>Add your own hilarious joke</p>
